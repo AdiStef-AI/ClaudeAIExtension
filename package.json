@@ -1,10 +1,15 @@
 {
   "name": "claude-ai-extension",
   "version": "0.1.0",
-  "description": "Browser extension to capture claude.ai session token usage and feed it into the tc token counter",
+  "description": "Browser extension to capture claude.ai session token usage and feed it into tc",
   "private": true,
   "scripts": {
-    "build": "web-ext build",
-    "lint": "web-ext lint"
+    "build": "esbuild tokenizer-src.js --bundle --format=esm --outfile=tokenizer.js"
+  },
+  "dependencies": {
+    "gpt-tokenizer": "^2.9.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
   }
 }
