@@ -2,6 +2,10 @@ import { countTokens } from './tokenizer-src.js';
 
 const HOST_NAME = 'com.anthropic.claudeai_tc';
 
+// Guards against duplicate assembly when claude.ai fires multiple
+// CONVERSATION_FETCHED events for the same turn.
+const assembling = new Set();
+
 // ── Message routing ──────────────────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((message) => {
@@ -35,6 +39,16 @@ async function handleConversationFetched(data) {
 // ── Turn assembly ─────────────────────────────────────────────────────────────
 
 async function assembleTurn(convId, { sseData, convData }) {
+  if (assembling.has(convId)) return;
+  assembling.add(convId);
+  try {
+    await _assembleTurn(convId, { sseData, convData });
+  } finally {
+    assembling.delete(convId);
+  }
+}
+
+async function _assembleTurn(convId, { sseData, convData }) {
   const {
     model, parentMessageUuid, outputText, timestamp,
   } = sseData;
