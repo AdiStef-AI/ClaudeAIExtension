@@ -99,14 +99,45 @@ The TokenCounter project (`C:\Adrian\DEV\Projects\TokenCounter`) needs a one-tim
 
 ## How to use it
 
-Once installed, the extension is fully automatic. There is no UI, no popup, no settings to configure. Every time you send a message in a `claude.ai/chat/...` conversation, the extension:
+Once installed, the extension is fully automatic. Every time you send a message in a `claude.ai/chat/...` conversation, the extension:
 
 1. Captures the response as it streams in
 2. Waits for claude.ai to fetch the updated conversation (which happens automatically in the background)
 3. Estimates token counts for both input and output
 4. Appends a record to `~/.claude/claude-ai/<session-id>.jsonl`
+5. Updates the in-page token counter widget
 
 **Note:** `tc` must be updated to also scan `~/.claude/claude-ai/` in addition to `~/.claude/projects/`. That change lives in the **TokenCounter** project (`C:\Adrian\DEV\Projects\TokenCounter`), not here.
+
+### In-page token counter widget
+
+A small floating widget is injected into every `claude.ai/chat/...` page. It appears in the **bottom-right corner** and requires no interaction to use.
+
+**Collapsed (always visible):**
+
+```
+tc  1.2k · 324
+    ^^^^   ^^^
+    input  output  (session totals for the current conversation)
+```
+
+Input tokens are shown in blue; output tokens in green.
+
+**Expanded (hover to reveal):**
+
+The widget expands upward to show a detail panel with:
+- Conversation name
+- Model (e.g. `claude-sonnet-4-6`)
+- Last turn: input and output token counts
+- Conversation total: cumulative input and output token counts
+
+**Conversation switching:**
+
+Totals reset automatically when you navigate to a different conversation within the same tab. The widget tracks the active `convId` from each `TURN_COUNTED` event and resets when it changes.
+
+**Relationship to disk writes:**
+
+The widget only updates after `sendToHost` succeeds — meaning the JSONL record was written to disk first. If the native host is unreachable for any reason, the widget will not update (and neither will the file). They are always in sync.
 
 ### What gets recorded
 
@@ -172,7 +203,7 @@ Key findings:
 ### Architecture
 
 ```
- chrome.ai/chat page
+ claude.ai/chat page
  ┌──────────────────────────────────────────┐
  │  content-main.js  (world: MAIN)          │
  │  - patches window.fetch                  │
@@ -193,14 +224,17 @@ Key findings:
  │    via chrome.storage.session            │
  │  - tokenizes input + output text         │
  │  - sends turn record to native host      │
- └──────────────────┬───────────────────────┘
-                    │ Chrome Native Messaging
- ┌──────────────────▼───────────────────────┐
- │  host/host.py                            │
- │  - receives turn records                 │
- │  - appends to                            │
- │    ~/.claude/claude-ai/{session}.jsonl   │
- └──────────────────────────────────────────┘
+ │  - notifies overlay via tabs.sendMessage │
+ └──────────┬───────────────────────────────┘
+            │ Chrome Native Messaging  │ chrome.tabs.sendMessage
+ ┌──────────▼────────────┐  ┌──────────▼───────────────────────┐
+ │  host/host.py         │  │  content-overlay.js              │
+ │  - receives records   │  │  (world: ISOLATED, document_end) │
+ │  - appends to         │  │  - floating widget in page       │
+ │    ~/.claude/         │  │  - shows per-turn + session      │
+ │    claude-ai/         │  │    token totals                  │
+ │    {session}.jsonl    │  │  - resets on conversation switch │
+ └───────────────────────┘  └──────────────────────────────────┘
 ```
 
 ### Why two content scripts?
@@ -228,6 +262,7 @@ Browser extensions cannot write to the local filesystem directly. Chrome's [Nati
 manifest.json           — MV3 extension manifest
 content-main.js         — fetch interceptor (world: MAIN)
 content-isolated.js     — message relay (world: ISOLATED)
+content-overlay.js      — in-page token counter widget (world: ISOLATED, document_end)
 background-src.js       — service worker source (esbuild entry point)
 background.js           — service worker bundle (esbuild output, gitignored)
 tokenizer-src.js        — gpt-tokenizer wrapper (esbuild entry point)

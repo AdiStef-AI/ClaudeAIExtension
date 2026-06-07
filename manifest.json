@@ -22,6 +22,11 @@
       "matches": ["https://claude.ai/chat/*"],
       "js": ["content-isolated.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://claude.ai/chat/*"],
+      "js": ["content-overlay.js"],
+      "run_at": "document_end"
     }
   ],
   "background": {

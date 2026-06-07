@@ -16,13 +16,15 @@ This extension closes that gap.
 
 ```
 claude.ai tab
-  └─ content-main.js    patches window.fetch, taps SSE stream + conversation JSON
+  └─ content-main.js      patches window.fetch, taps SSE stream + conversation JSON
   └─ content-isolated.js  relays events to the background service worker
+  └─ content-overlay.js   floating token counter widget injected into the page
 
 background.js (service worker)
   └─ correlates SSE output + conversation history
   └─ estimates token counts with gpt-tokenizer (cl100k_base)
   └─ sends a turn record to the native host via Chrome Native Messaging
+  └─ notifies the overlay with live per-turn counts
 
 host/host.py
   └─ appends JSONL records to ~/.claude/claude-ai/<session-uuid>.jsonl
@@ -57,6 +59,17 @@ Each completed assistant turn produces one record:
 - Node.js (to build the bundles — one-time)
 - Python 3.8 or later (runs the native host companion)
 - Git
+
+---
+
+## In-page token counter
+
+A small widget is injected into every `claude.ai/chat/...` page. It sits in the bottom-right corner and updates automatically after each completed turn.
+
+- **Collapsed view** — a pill badge showing session input (blue) and output (green) token totals
+- **Expanded view** — hover to see the conversation name, model, last-turn counts, and running conversation totals
+- Totals reset automatically when you switch to a different conversation
+- The widget only updates after a turn is successfully written to disk — it is always in sync with the JSONL files
 
 ---
 

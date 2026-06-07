@@ -8,47 +8,50 @@ const assembling = new Set();
 
 // ── Message routing ──────────────────────────────────────────────────────────
 
-chrome.runtime.onMessage.addListener((message) => {
+chrome.runtime.onMessage.addListener((message, sender) => {
+  const tabId = sender?.tab?.id;
   if (message.type === 'TURN_SSE_DONE') {
     console.log('[claude-tc] TURN_SSE_DONE', message.convId, 'outputLen:', message.outputText?.length);
-    handleSseDone(message);
+    handleSseDone(message, tabId);
   } else if (message.type === 'CONVERSATION_FETCHED') {
     console.log('[claude-tc] CONVERSATION_FETCHED', message.convId, 'msgs:', message.chatMessages?.length);
-    handleConversationFetched(message);
+    handleConversationFetched(message, tabId);
   }
 });
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
-async function handleSseDone(data) {
+async function handleSseDone(data, tabId) {
   const key   = stateKey(data.convId);
   const state = (await sessionGet(key)) ?? {};
   state.sseData = data;
+  if (tabId != null) state.tabId = tabId;
   await sessionSet(key, state);
   if (state.convData) await assembleTurn(data.convId, state);
 }
 
-async function handleConversationFetched(data) {
+async function handleConversationFetched(data, tabId) {
   const key   = stateKey(data.convId);
   const state = (await sessionGet(key)) ?? {};
   state.convData = data;
+  if (tabId != null) state.tabId = tabId;
   await sessionSet(key, state);
   if (state.sseData) await assembleTurn(data.convId, state);
 }
 
 // ── Turn assembly ─────────────────────────────────────────────────────────────
 
-async function assembleTurn(convId, { sseData, convData }) {
+async function assembleTurn(convId, { sseData, convData, tabId }) {
   if (assembling.has(convId)) return;
   assembling.add(convId);
   try {
-    await _assembleTurn(convId, { sseData, convData });
+    await _assembleTurn(convId, { sseData, convData, tabId });
   } finally {
     assembling.delete(convId);
   }
 }
 
-async function _assembleTurn(convId, { sseData, convData }) {
+async function _assembleTurn(convId, { sseData, convData, tabId }) {
   const {
     model, parentMessageUuid, outputText, timestamp,
   } = sseData;
@@ -84,6 +87,15 @@ async function _assembleTurn(convId, { sseData, convData }) {
   try {
     const resp = await sendToHost(record);
     console.log('[claude-tc] host response:', resp);
+    if (tabId != null) {
+      chrome.tabs.sendMessage(tabId, {
+        type:    'TURN_COUNTED',
+        convId,
+        convName,
+        model:   record.message.model,
+        usage:   record.message.usage,
+      }).catch(() => {});
+    }
   } catch (err) {
     console.error('[claude-tc] native host error:', err);
   }
