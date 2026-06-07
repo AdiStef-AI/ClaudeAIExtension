@@ -20,7 +20,7 @@ This browser extension closes that gap. It intercepts the network traffic from c
 
 ### Step 1 — Build the tokenizer
 
-The extension uses [gpt-tokenizer](https://github.com/nicholaides/gpt-tokenizer) to estimate token counts client-side. It needs to be bundled before the extension can be loaded.
+The extension uses [gpt-tokenizer](https://github.com/niieani/gpt-tokenizer) to estimate token counts client-side. It needs to be bundled before the extension can be loaded.
 
 ```
 npm install
@@ -56,10 +56,44 @@ After setup completes, click the **refresh icon** on the extension card in `chro
 
 ### Verify it works
 
-1. Open a claude.ai/chat conversation in Chrome
-2. Send a message and wait for the response to finish
-3. Check `%USERPROFILE%\.claude\claude-ai\` — a file named `<conversation-uuid>.jsonl` should appear
-4. Run `tc logs` — the session should appear alongside Claude Code sessions
+**Step 1 — Reload the extension after setup**
+
+After running `host\setup.bat`, click the **refresh icon** on the extension card in `chrome://extensions` to reload it with the updated host registration.
+
+**Step 2 — Open the service worker console**
+
+On the extension card in `chrome://extensions`, click the **"service worker"** link (next to "Inspect views"). This opens a DevTools window for the background script. Keep the **Console** tab visible.
+
+**Step 3 — Send a test message**
+
+Open any `claude.ai/chat/...` conversation in Chrome, send a short message, and wait for the full response to finish streaming.
+
+**Step 4 — Confirm the log sequence**
+
+You should see these four lines in the service worker console:
+
+```
+[claude-tc] TURN_SSE_DONE <conv-uuid>  outputLen: <N>
+[claude-tc] CONVERSATION_FETCHED <conv-uuid>  msgs: <N>
+[claude-tc] assembled record — input_tokens: X  output_tokens: Y
+[claude-tc] host response: {ok: true}
+```
+
+**Step 5 — Confirm the file was written**
+
+```
+%USERPROFILE%\.claude\claude-ai\
+```
+
+A file named `<conversation-uuid>.jsonl` should appear. Each assistant turn appends one JSON record to that file.
+
+**Step 6 — Confirm tc sees it**
+
+```
+tc logs
+```
+
+The claude.ai session should appear alongside Claude Code sessions.
 
 ---
 

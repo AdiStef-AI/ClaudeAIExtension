@@ -6,8 +6,10 @@ const HOST_NAME = 'com.anthropic.claudeai_tc';
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'TURN_SSE_DONE') {
+    console.log('[claude-tc] TURN_SSE_DONE', message.convId, 'outputLen:', message.outputText?.length);
     handleSseDone(message);
   } else if (message.type === 'CONVERSATION_FETCHED') {
+    console.log('[claude-tc] CONVERSATION_FETCHED', message.convId, 'msgs:', message.chatMessages?.length);
     handleConversationFetched(message);
   }
 });
@@ -66,8 +68,10 @@ async function assembleTurn(convId, { sseData, convData }) {
     },
   };
 
+  console.log('[claude-tc] assembled record — input_tokens:', record.message.usage.input_tokens, 'output_tokens:', record.message.usage.output_tokens);
   try {
-    await sendToHost(record);
+    const resp = await sendToHost(record);
+    console.log('[claude-tc] host response:', resp);
   } catch (err) {
     console.error('[claude-tc] native host error:', err);
   }

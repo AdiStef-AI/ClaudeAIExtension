@@ -1,7 +1,9 @@
 {
   "name": "com.anthropic.claudeai_tc",
   "description": "claude.ai token tracker companion",
-  "path": "PLACEHOLDER_SET_BY_SETUP",
+  "path": "C:\\Adrian\\DEV\\Projects\\ClaudeAIExtension\\host\\host.bat",
   "type": "stdio",
-  "allowed_origins": ["chrome-extension://PLACEHOLDER_SET_BY_SETUP/"]
+  "allowed_origins": [
+    "chrome-extension://lcjdmelflphfodclfbinldfgobchgjal/"
+  ]
 }
