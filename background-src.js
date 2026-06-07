@@ -1,4 +1,4 @@
-import { countTokens } from './tokenizer.js';
+import { countTokens } from './tokenizer-src.js';
 
 const HOST_NAME = 'com.anthropic.claudeai_tc';
 
@@ -36,12 +36,10 @@ async function handleConversationFetched(data) {
 
 async function assembleTurn(convId, { sseData, convData }) {
   const {
-    model, parentMessageUuid, promptText, outputText, timestamp,
+    model, parentMessageUuid, outputText, timestamp,
   } = sseData;
   const { convName, chatMessages } = convData;
 
-  // Input context = all messages up to and including the human message that
-  // triggered this turn. parentMessageUuid identifies that human message.
   const parentIdx = chatMessages.findIndex(m => m.uuid === parentMessageUuid);
   const inputMessages = parentIdx >= 0
     ? chatMessages.slice(0, parentIdx + 1)

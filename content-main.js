@@ -1,4 +1,5 @@
 (function patchFetch() {
+  console.log('[claude-tc] content-main.js injected');
   // Matches: /api/organizations/{orgId}/chat_conversations/{convId}/completion
   const COMPLETION_RE = /\/api\/organizations\/([^/?]+)\/chat_conversations\/([^/?]+)\/completion$/;
 

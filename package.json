@@ -4,7 +4,7 @@
   "description": "Browser extension to capture claude.ai session token usage and feed it into tc",
   "private": true,
   "scripts": {
-    "build": "esbuild tokenizer-src.js --bundle --format=esm --outfile=tokenizer.js"
+    "build": "esbuild background-src.js --bundle --format=esm --outfile=background.js && esbuild tokenizer-src.js --bundle --format=esm --outfile=tokenizer.js"
   },
   "dependencies": {
     "gpt-tokenizer": "^2.9.0"
