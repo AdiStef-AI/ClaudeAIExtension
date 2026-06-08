@@ -16,6 +16,13 @@ chrome.runtime.onMessage.addListener((message, sender) => {
   } else if (message.type === 'CONVERSATION_FETCHED') {
     console.log('[claude-tc] CONVERSATION_FETCHED', message.convId, 'msgs:', message.chatMessages?.length);
     handleConversationFetched(message, tabId);
+  } else if (message.type === 'MESSAGE_LIMIT') {
+    if (tabId != null) {
+      chrome.tabs.sendMessage(tabId, {
+        type: 'MESSAGE_LIMIT',
+        messageLimit: message.messageLimit,
+      }).catch(() => {});
+    }
   }
 });
 

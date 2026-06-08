@@ -103,6 +103,13 @@
                 '*'
               );
             }
+
+            if (ev.type === 'message_limit' && ev.message_limit) {
+              window.postMessage(
+                { __claudeTC: true, type: 'MESSAGE_LIMIT', convId: ctx.convId, messageLimit: ev.message_limit },
+                '*'
+              );
+            }
           } catch (_) {}
         }
       }
