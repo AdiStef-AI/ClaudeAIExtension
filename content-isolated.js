@@ -4,5 +4,5 @@
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
   if (!event.data?.__claudeTC) return;
-  chrome.runtime.sendMessage(event.data);
+  chrome.runtime.sendMessage(event.data).catch(() => {});
 });
