@@ -358,4 +358,13 @@
   history.pushState = function (...a) { _push(...a);    syncVisibility(); };
   history.replaceState = function (...a) { _replace(...a); syncVisibility(); };
   window.addEventListener('popstate', syncVisibility);
+
+  // Polling fallback — catches navigations the History API intercepts miss
+  let _lastPath = location.pathname;
+  setInterval(() => {
+    if (location.pathname !== _lastPath) {
+      _lastPath = location.pathname;
+      syncVisibility();
+    }
+  }, 500);
 })();
