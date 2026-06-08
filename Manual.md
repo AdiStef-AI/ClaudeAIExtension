@@ -156,6 +156,14 @@ Click and drag the badge to reposition the widget anywhere on screen. Position i
 
 Conversation-level totals (last turn, conversation total) reset automatically when the active conversation ID changes. The 5h window total is unaffected — it reflects all sessions regardless of which conversation is open.
 
+**Multiple tabs:**
+
+Each tab's overlay is independent. Session in/out counts reflect only turns completed in that tab (by design — each tab is a different conversation). The 5h window percentage is accurate as of the last turn completed in that tab; it does not update reactively when other tabs complete turns.
+
+**New tabs and SPA navigation:**
+
+The extension injects into all `https://claude.ai/*` pages. The widget is automatically hidden on non-chat pages (home, settings, etc.) and shown as soon as the URL changes to `/chat/*` — whether via direct load, SPA navigation, or link click. Position is restored from `localStorage` immediately on show.
+
 **Relationship to disk writes:**
 
 The widget only updates after `sendToHost` succeeds — meaning the JSONL record was written to disk first. If the native host is unreachable for any reason, neither the file nor the widget updates. They are always in sync.
@@ -201,6 +209,7 @@ Token counts are estimates — claude.ai does not expose exact server-side count
 - **System prompt not counted** — claude.ai injects a system prompt server-side that is not visible to the extension. Input tokens will be underestimated by that amount.
 - **Navigate-away loss** — If you close or navigate away from a tab immediately after sending a message, the extension may not capture that turn (the conversation fetch that completes the record may not fire in time).
 - **Multi-tab deduplication** — Opening the same conversation in two tabs simultaneously may produce duplicate records.
+- **5h window % is per-tab** — Each overlay's window percentage updates only when a turn completes in that tab. It does not push cross-tab updates. The value shown is always correct as of the last completed turn on that tab.
 
 ---
 

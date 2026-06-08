@@ -118,6 +118,7 @@ Run `check-install.ps1` at any time to verify the installation is up to date.
 - **claude.ai/chat only** — Claude Designer (`claude.ai/design`) uses a binary protobuf API and is not supported yet.
 - **System prompt excluded** — claude.ai injects a server-side system prompt that is not visible to the extension. Input tokens will be slightly underestimated.
 - **Navigate-away loss** — Closing a tab immediately after sending a message may miss that turn.
+- **5h window % is per-tab** — Each tab's overlay updates only when a turn completes in that tab. The value is always correct as of the last completed turn; it does not sync reactively across tabs.
 
 ---
 
