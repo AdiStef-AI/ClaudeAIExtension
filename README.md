@@ -64,12 +64,23 @@ Each completed assistant turn produces one record:
 
 ## In-page token counter
 
-A small widget is injected into every `claude.ai/chat/...` page. It sits in the bottom-right corner and updates automatically after each completed turn.
+A small widget is injected into every `claude.ai/chat/...` page. It sits in the bottom-right corner, updates automatically after each turn, and is draggable — position persists across reloads.
 
-- **Collapsed view** — a pill badge showing session input (blue) and output (green) token totals
-- **Expanded view** — hover to see the conversation name, model, last-turn counts, and running conversation totals
-- Totals reset automatically when you switch to a different conversation
-- The widget only updates after a turn is successfully written to disk — it is always in sync with the JSONL files
+**Collapsed badge (always visible):**
+```
+tc  1.2k · 324 · 23%
+    ^^^^   ^^^   ^^^
+    in     out   5h window usage (purple)
+```
+
+**Expanded panel (hover):**
+- Conversation name + model
+- Last-turn and conversation-total input/output counts
+- **5h window section** — rolling token total across all claude.ai *and* Claude Code sessions in the last 5 hours, shown as `2.3M / 10M (23%)` with a progress bar
+- Reset countdown sourced from the claude.ai SSE stream
+- **Editable limit** — click the `Limit [10] M` field to change your plan's token budget; saves to localStorage instantly
+
+The widget only updates after a turn is successfully written to disk — it is always in sync with the JSONL files. The 5h window total is computed by the native host scanning all local JSONL files on every turn.
 
 ---
 

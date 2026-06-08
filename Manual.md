@@ -111,33 +111,54 @@ Once installed, the extension is fully automatic. Every time you send a message 
 
 ### In-page token counter widget
 
-A small floating widget is injected into every `claude.ai/chat/...` page. It appears in the **bottom-right corner** and requires no interaction to use.
+A small floating widget is injected into every `claude.ai/chat/...` page. It appears in the **bottom-right corner** by default, is draggable, and saves its position across reloads.
 
-**Collapsed (always visible):**
+**Collapsed badge (always visible):**
 
 ```
-tc  1.2k · 324
-    ^^^^   ^^^
-    input  output  (session totals for the current conversation)
+tc  1.2k · 324 · 23%
+    ^^^^   ^^^   ^^^
+    in     out   5h window usage (purple, appears after first turn)
 ```
 
-Input tokens are shown in blue; output tokens in green.
+Input tokens in blue, output tokens in green, 5h window percentage in purple.
 
-**Expanded (hover to reveal):**
+**Expanded panel (hover to reveal):**
 
-The widget expands upward to show a detail panel with:
-- Conversation name
-- Model (e.g. `claude-sonnet-4-6`)
-- Last turn: input and output token counts
-- Conversation total: cumulative input and output token counts
+The widget expands upward (or downward if near the top of the viewport) to show:
+
+| Section | Contents |
+|---|---|
+| Header | Conversation name + model |
+| Last turn | Input and output token counts for the most recent assistant response |
+| Conversation total | Cumulative input and output tokens for the current conversation |
+| 5h window | Rolling token total (all sessions) · progress bar · reset countdown · editable limit |
+
+**5h window section:**
+
+```
+5h window
+  Tokens    2.3M / 10M  (23%)
+  [▓▓▓▓▓░░░░░░░░░░░░░░░]
+  Resets    in 3h 20m
+  Limit     [10] M
+```
+
+- The **token total** is computed by the native host scanning every `.jsonl` file under `~/.claude/claude-ai/` (claude.ai sessions) and `~/.claude/projects/` (Claude Code CLI sessions), summing all token fields for records timestamped within the last 5 hours. This gives a true cross-session rolling total on this device.
+- The **reset countdown** comes from the `message_limit` SSE event that claude.ai fires after each turn, and refreshes every minute.
+- The **Limit** field is always editable — click the number and type your plan's token budget in millions (default: 10 for the Pro 10M limit). The value is saved to `localStorage` and takes effect immediately.
+
+**Dragging:**
+
+Click and drag the badge to reposition the widget anywhere on screen. Position is saved to `localStorage` and restored on the next page load. If dragged near the top of the viewport, the detail panel automatically flips to open downward.
 
 **Conversation switching:**
 
-Totals reset automatically when you navigate to a different conversation within the same tab. The widget tracks the active `convId` from each `TURN_COUNTED` event and resets when it changes.
+Conversation-level totals (last turn, conversation total) reset automatically when the active conversation ID changes. The 5h window total is unaffected — it reflects all sessions regardless of which conversation is open.
 
 **Relationship to disk writes:**
 
-The widget only updates after `sendToHost` succeeds — meaning the JSONL record was written to disk first. If the native host is unreachable for any reason, the widget will not update (and neither will the file). They are always in sync.
+The widget only updates after `sendToHost` succeeds — meaning the JSONL record was written to disk first. If the native host is unreachable for any reason, neither the file nor the widget updates. They are always in sync.
 
 ### What gets recorded
 
@@ -230,11 +251,15 @@ Key findings:
  ┌──────────▼────────────┐  ┌──────────▼───────────────────────┐
  │  host/host.py         │  │  content-overlay.js              │
  │  - receives records   │  │  (world: ISOLATED, document_end) │
- │  - appends to         │  │  - floating widget in page       │
- │    ~/.claude/         │  │  - shows per-turn + session      │
- │    claude-ai/         │  │    token totals                  │
- │    {session}.jsonl    │  │  - resets on conversation switch │
- └───────────────────────┘  └──────────────────────────────────┘
+ │  - appends to         │  │  - draggable floating widget     │
+ │    ~/.claude/         │  │  - last-turn + session totals    │
+ │    claude-ai/         │  │  - 5h rolling window % vs.       │
+ │    {session}.jsonl    │  │    configurable token limit      │
+ │  - scans all JSONL    │  │  - reset countdown from SSE      │
+ │    for 5h token total │  └──────────────────────────────────┘
+ │  - returns            │
+ │    window_tokens      │
+ └───────────────────────┘
 ```
 
 ### Why two content scripts?
@@ -262,7 +287,7 @@ Browser extensions cannot write to the local filesystem directly. Chrome's [Nati
 manifest.json           — MV3 extension manifest
 content-main.js         — fetch interceptor (world: MAIN)
 content-isolated.js     — message relay (world: ISOLATED)
-content-overlay.js      — in-page token counter widget (world: ISOLATED, document_end)
+content-overlay.js      — in-page widget: per-turn/session counts, 5h window %, draggable (world: ISOLATED, document_end)
 background-src.js       — service worker source (esbuild entry point)
 background.js           — service worker bundle (esbuild output, gitignored)
 tokenizer-src.js        — gpt-tokenizer wrapper (esbuild entry point)
