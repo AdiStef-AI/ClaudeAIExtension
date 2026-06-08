@@ -96,11 +96,12 @@ async function _assembleTurn(convId, { sseData, convData, tabId }) {
     console.log('[claude-tc] host response:', resp);
     if (tabId != null) {
       chrome.tabs.sendMessage(tabId, {
-        type:    'TURN_COUNTED',
+        type:         'TURN_COUNTED',
         convId,
         convName,
-        model:   record.message.model,
-        usage:   record.message.usage,
+        model:        record.message.model,
+        usage:        record.message.usage,
+        windowTokens: resp?.window_tokens ?? null,
       }).catch(() => {});
     }
   } catch (err) {

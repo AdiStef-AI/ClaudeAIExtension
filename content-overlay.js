@@ -9,7 +9,14 @@
   let lastIn     = 0;
   let lastOut    = 0;
   let lastModel  = '';
-  let limitData  = null; // raw messageLimit object from SSE
+  let limitData    = null; // raw messageLimit object from SSE (for resetsAt)
+  let windowTokens = null; // 5h rolling total from host (all sessions)
+
+  function loadLimit() {
+    const v = parseInt(localStorage.getItem('claude-tc-limit') || '', 10);
+    return (Number.isFinite(v) && v > 0) ? v : 10_000_000;
+  }
+  let tokenLimit = loadLimit();
 
   // Refresh reset-time countdown every minute
   setInterval(() => { if (limitData?.resetsAt) render(); }, 60_000);
@@ -91,6 +98,27 @@
     #claude-tc-detail .ctc-pct-val { color: #a78bfa; }
     #claude-tc-detail .ctc-dim     { color: #71717a; }
 
+    /* Keep detail panel open while user is editing the limit */
+    #claude-tc-overlay.editing #claude-tc-detail { visibility: visible; opacity: 1; }
+
+    /* Limit input */
+    #ctc-limit-input {
+      width: 36px;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #52525b;
+      color: #a78bfa;
+      font: inherit;
+      font-weight: 600;
+      text-align: right;
+      outline: none;
+      padding: 0 1px;
+      -moz-appearance: textfield;
+    }
+    #ctc-limit-input::-webkit-outer-spin-button,
+    #ctc-limit-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    #ctc-limit-input:focus { border-bottom-color: #a78bfa; }
+
     /* 5h window progress bar */
     #claude-tc-bar-wrap {
       margin-top: 6px;
@@ -122,9 +150,16 @@
         <tr class="ctc-section-row"><td colspan="2">Conversation total</td></tr>
         <tr><td>Input</td>  <td class="ctc-in-val"  id="ctc-ses-in">—</td></tr>
         <tr><td>Output</td> <td class="ctc-out-val" id="ctc-ses-out">—</td></tr>
-        <tr class="ctc-section-row" id="ctc-limit-header" style="display:none"><td colspan="2">5h window</td></tr>
-        <tr id="ctc-limit-msgs-row" style="display:none"><td>Messages</td><td class="ctc-pct-val" id="ctc-limit-msgs">—</td></tr>
+        <tr class="ctc-section-row"><td colspan="2">5h window</td></tr>
+        <tr><td>Tokens</td><td class="ctc-pct-val" id="ctc-window-tokens">—</td></tr>
         <tr id="ctc-limit-reset-row" style="display:none"><td>Resets</td><td class="ctc-dim" id="ctc-limit-reset">—</td></tr>
+        <tr>
+          <td class="ctc-dim" style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em">Limit</td>
+          <td style="text-align:right">
+            <input id="ctc-limit-input" type="number" min="1" max="9999">
+            <span class="ctc-dim"> M</span>
+          </td>
+        </tr>
       </table>
       <div id="claude-tc-bar-wrap" style="display:none">
         <div id="claude-tc-bar-fill" style="width:0%"></div>
@@ -193,6 +228,20 @@
     document.addEventListener('mouseup',   onUp);
   });
 
+  // ── Limit input ───────────────────────────────────────────────────────────
+  const limitInput = document.getElementById('ctc-limit-input');
+  limitInput.value = Math.round(tokenLimit / 1_000_000);
+  limitInput.addEventListener('focus', () => overlay.classList.add('editing'));
+  limitInput.addEventListener('blur',  () => overlay.classList.remove('editing'));
+  limitInput.addEventListener('input', () => {
+    const v = parseInt(limitInput.value, 10);
+    if (Number.isFinite(v) && v > 0) {
+      tokenLimit = v * 1_000_000;
+      localStorage.setItem('claude-tc-limit', String(tokenLimit));
+      render();
+    }
+  });
+
   // ── Message listener ──────────────────────────────────────────────────────
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'TURN_COUNTED') {
@@ -207,6 +256,7 @@
       sessionIn  += lastIn;
       sessionOut += lastOut;
       lastModel = msg.model || lastModel;
+      if (msg.windowTokens != null) windowTokens = msg.windowTokens;
       render();
     } else if (msg.type === 'MESSAGE_LIMIT') {
       limitData = msg.messageLimit;
@@ -230,54 +280,29 @@
     setEl('ctc-ses-in',   fmt(sessionIn));
     setEl('ctc-ses-out',  fmt(sessionOut));
 
-    // 5h window
-    if (limitData) {
-      showEl('ctc-limit-header', true);
-
-      // Message count row — only when server sends remaining + total
-      const hasCount = limitData.remaining != null && limitData.total != null;
-      if (hasCount) {
-        setEl('ctc-limit-msgs', `${limitData.total - limitData.remaining} / ${limitData.total}`);
-      }
-      showEl('ctc-limit-msgs-row', hasCount);
-
-      // Reset time
-      if (limitData.resetsAt) {
-        setEl('ctc-limit-reset', fmtReset(limitData.resetsAt));
-        showEl('ctc-limit-reset-row', true);
-      } else {
-        showEl('ctc-limit-reset-row', false);
-      }
-
-      // Progress bar + badge percentage
-      const pct = computePct();
-      if (pct != null) {
-        const clamped = Math.max(0, Math.min(100, pct));
-        document.getElementById('claude-tc-bar-fill').style.width = clamped + '%';
-        showEl('claude-tc-bar-wrap', true);
-        setEl('ctc-badge-pct', clamped + '%');
-        showEl('ctc-badge-pct', true);
-        showEl('ctc-pct-sep',  true);
-      } else {
-        showEl('claude-tc-bar-wrap', false);
-        showEl('ctc-badge-pct', false);
-        showEl('ctc-pct-sep',  false);
-      }
+    // 5h window — token-based percentage from host query
+    if (windowTokens != null) {
+      const pct = Math.min(100, Math.round(windowTokens / tokenLimit * 100));
+      setEl('ctc-window-tokens', `${fmtM(windowTokens)} / ${fmtM(tokenLimit)}  (${pct}%)`);
+      document.getElementById('claude-tc-bar-fill').style.width = pct + '%';
+      showEl('claude-tc-bar-wrap', true);
+      setEl('ctc-badge-pct', pct + '%');
+      showEl('ctc-badge-pct', true);
+      showEl('ctc-pct-sep',  true);
+    } else {
+      setEl('ctc-window-tokens', '—');
+      showEl('claude-tc-bar-wrap', false);
+      showEl('ctc-badge-pct', false);
+      showEl('ctc-pct-sep',  false);
     }
-  }
 
-  function computePct() {
-    if (!limitData) return null;
-    // Prefer message-count-based percentage
-    if (limitData.remaining != null && limitData.total != null && limitData.total > 0) {
-      return Math.round((1 - limitData.remaining / limitData.total) * 100);
+    // Reset time from SSE message_limit event
+    if (limitData?.resetsAt) {
+      setEl('ctc-limit-reset', fmtReset(limitData.resetsAt));
+      showEl('ctc-limit-reset-row', true);
+    } else {
+      showEl('ctc-limit-reset-row', false);
     }
-    // Fall back to time-elapsed percentage (how far into the 5h window are we)
-    if (limitData.resetsAt) {
-      const msLeft = new Date(limitData.resetsAt) - Date.now();
-      return Math.round((1 - Math.max(0, msLeft) / (5 * 3_600_000)) * 100);
-    }
-    return null;
   }
 
   function fmtReset(resetsAt) {
@@ -292,6 +317,13 @@
   function fmt(n) {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
     if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}k`;
+    return String(n);
+  }
+
+  // Compact format for the window total (1 decimal place)
+  function fmtM(n) {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000)     return `${(n / 1_000).toFixed(0)}k`;
     return String(n);
   }
 
