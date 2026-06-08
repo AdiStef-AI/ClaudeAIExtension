@@ -33,23 +33,23 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: rgba(20, 20, 23, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.10);
       border-radius: 20px;
       padding: 4px 11px;
-      color: #52525b;
+      color: #e4e4e7;
       cursor: grab;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       white-space: nowrap;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.30);
     }
     #claude-tc-overlay.dragging #claude-tc-badge { cursor: grabbing; }
-    #claude-tc-badge .ctc-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #a1a1aa; margin-right: 2px; }
-    #claude-tc-badge .ctc-in    { color: #2563eb; font-weight: 600; }
-    #claude-tc-badge .ctc-out   { color: #16a34a; font-weight: 600; }
-    #claude-tc-badge .ctc-pct   { color: #7c3aed; font-weight: 600; }
-    #claude-tc-badge .ctc-sep   { color: #d4d4d8; }
+    #claude-tc-badge .ctc-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #71717a; margin-right: 2px; }
+    #claude-tc-badge .ctc-in    { color: #60a5fa; font-weight: 600; }
+    #claude-tc-badge .ctc-out   { color: #34d399; font-weight: 600; }
+    #claude-tc-badge .ctc-pct   { color: #a78bfa; font-weight: 600; }
+    #claude-tc-badge .ctc-sep   { color: #52525b; }
 
     /* ── Detail panel (hover) ── */
     #claude-tc-detail {
@@ -58,15 +58,15 @@
       position: absolute;
       bottom: calc(100% + 8px);
       right: 0;
-      background: rgba(255, 255, 255, 0.98);
-      border: 1px solid rgba(0, 0, 0, 0.10);
+      background: rgba(20, 20, 23, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.10);
       border-radius: 10px;
       padding: 12px 14px;
-      color: #18181b;
+      color: #ffffff;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       min-width: 220px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
       transition: opacity 0.12s ease, visibility 0.12s ease;
     }
     /* Suppress hover-expand while dragging */
@@ -80,28 +80,28 @@
       top: calc(100% + 8px);
     }
 
-    #claude-tc-detail .ctc-conv       { color: #52525b; font-size: 10px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
-    #claude-tc-detail .ctc-model-name { color: #a1a1aa; font-size: 10px; margin-bottom: 10px; }
+    #claude-tc-detail .ctc-conv       { color: #e4e4e7; font-size: 10px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
+    #claude-tc-detail .ctc-model-name { color: #71717a; font-size: 10px; margin-bottom: 10px; }
     #claude-tc-detail table            { width: 100%; border-collapse: collapse; }
-    #claude-tc-detail td               { padding: 1px 0; color: #52525b; }
+    #claude-tc-detail td               { padding: 1px 0; color: #d4d4d8; }
     #claude-tc-detail td:last-child    { text-align: right; font-weight: 600; }
-    #claude-tc-detail .ctc-section-row td { color: #a1a1aa; font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em; padding-top: 9px; padding-bottom: 2px; }
-    #claude-tc-detail .ctc-in-val  { color: #2563eb; }
-    #claude-tc-detail .ctc-out-val { color: #16a34a; }
-    #claude-tc-detail .ctc-pct-val { color: #7c3aed; }
-    #claude-tc-detail .ctc-dim     { color: #a1a1aa; }
+    #claude-tc-detail .ctc-section-row td { color: #71717a; font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em; padding-top: 9px; padding-bottom: 2px; }
+    #claude-tc-detail .ctc-in-val  { color: #60a5fa; }
+    #claude-tc-detail .ctc-out-val { color: #34d399; }
+    #claude-tc-detail .ctc-pct-val { color: #a78bfa; }
+    #claude-tc-detail .ctc-dim     { color: #71717a; }
 
     /* 5h window progress bar */
     #claude-tc-bar-wrap {
       margin-top: 6px;
-      background: #e4e4e7;
+      background: #3f3f46;
       border-radius: 3px;
       height: 4px;
       overflow: hidden;
     }
     #claude-tc-bar-fill {
       height: 100%;
-      background: #7c3aed;
+      background: #a78bfa;
       border-radius: 3px;
       transition: width 0.4s ease;
     }
