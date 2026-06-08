@@ -343,4 +343,19 @@
     const rect = overlay.getBoundingClientRect();
     detail.classList.toggle('ctc-below', rect.top < 280);
   }
+
+  // ── SPA navigation visibility ─────────────────────────────────────────────
+  // Show the widget only on /chat/ URLs; hide on all other claude.ai pages.
+  function syncVisibility() {
+    overlay.style.display = /^\/chat\//.test(location.pathname) ? '' : 'none';
+  }
+
+  syncVisibility();
+
+  // Intercept History API pushes (SPA navigation)
+  const _push    = history.pushState.bind(history);
+  const _replace = history.replaceState.bind(history);
+  history.pushState = function (...a) { _push(...a);    syncVisibility(); };
+  history.replaceState = function (...a) { _replace(...a); syncVisibility(); };
+  window.addEventListener('popstate', syncVisibility);
 })();
